@@ -1,7 +1,7 @@
 {
   "name": "gemini-beads",
   "publisher": "thoreinstein",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Git-backed issue tracker for multi-session work with dependencies and persistent memory.",
   "contextFileName": "GEMINI.md"
 }
