@@ -1,0 +1,32 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "name": "bd prime",
+            "type": "command",
+            "command": "bd prime --json",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PreCompress": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "name": "bd prime",
+            "type": "command",
+            "command": "bd prime --json",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+
+  }
+}
+
