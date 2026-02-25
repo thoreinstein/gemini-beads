@@ -1,0 +1,29 @@
+description = "Manage project decisions"
+prompt = """
+Record, list, and manage project decisions with rationale tracking.
+Arguments provided: {{args}}
+
+Usage:
+- Record: `bd decision record` (or just use `bd create --type decision`)
+- List: `bd list --type decision`
+- Show: `bd show <id>`
+- Supersede: Link new decision to old and close old one.
+
+When recording a decision, ensure you capture:
+1. Title: Summary of the decision
+2. Rationale: Why this was chosen
+3. Alternatives Considered: What else was tried and why rejected
+4. Affects: Which issues or areas are impacted
+
+Example structure for description:
+## Decision
+<summary>
+## Rationale
+<why>
+## Alternatives Considered
+- <alt>: <reason>
+## Affects
+- <ids>
+
+Use `run_shell_command` to execute the appropriate beads commands.
+"""

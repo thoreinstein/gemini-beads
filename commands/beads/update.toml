@@ -1,7 +1,14 @@
 description = "Update an issue"
 prompt = """
-Update a beads issue.
-Arguments: {{args}}
+Update one or more beads issues.
+Arguments provided: {{args}}
+
+Common updates:
+- Claim and start work: `bd update <id> --claim` (Sets assignee to you and status to in_progress)
+- Set status: `bd update <id> --status <status>`
+- Set priority: `bd update <id> --priority <0-4>`
+- Add notes: `bd update <id> --notes "..."`
+- Add labels: `bd update <id> --add-label <label>`
 
 Use `run_shell_command` to execute `bd update {{args}}`.
 """

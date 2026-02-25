@@ -1,12 +1,10 @@
 description = "Synchronize issues with git remote"
 prompt = """
 Synchronize issues with git remote.
+Note: In recent versions of bd, `sync` is often a no-op as changes are persisted immediately or via git hooks, but it remains the standard command for ensuring work is saved at the end of a session.
 
 Usage:
 - Basic sync: `bd sync`
-- Preview: `bd sync --dry-run`
-- Status: `bd sync --status`
-- Merge: `bd sync --merge`
 
 Arguments: {{args}}
 Use `run_shell_command` to execute `bd sync {{args}}`.
