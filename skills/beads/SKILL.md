@@ -4,7 +4,7 @@ description: >
   Git-backed issue tracker for multi-session work with dependencies and persistent
   memory across conversation compaction. Use when work spans sessions, has blockers,
   or needs context recovery after compaction.
-version: "0.52.0"
+version: "0.53.0"
 ---
 
 # Beads - Persistent Task Memory for AI Agents
