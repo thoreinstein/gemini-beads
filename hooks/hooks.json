@@ -7,7 +7,7 @@
           {
             "name": "bd prime",
             "type": "command",
-            "command": "bd prime --json",
+            "command": "bd prime",
             "timeout": 5000
           }
         ]
@@ -20,13 +20,11 @@
           {
             "name": "bd prime",
             "type": "command",
-            "command": "bd prime --json",
+            "command": "bd prime",
             "timeout": 5000
           }
         ]
       }
     ]
-
   }
 }
-
