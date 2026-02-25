@@ -5,7 +5,7 @@ You have access to **Beads (`bd`)**, a graph-based issue tracker that provides p
 ## Core Mandates for Beads
 
 - **Use `run_shell_command`** to execute `bd` commands.
-- **Source of Truth**: The `bd` tool is the authority. Do not try to parse `.beads/` files manually unless necessary; prefer the CLI.
+- **Source of Truth**: The `bd` tool is the authority.
 - **Persistence**: Always ensure work is tracked in beads so it survives conversation compaction.
 
 ## When to use Beads (`bd`)
@@ -24,18 +24,18 @@ You have access to **Beads (`bd`)**, a graph-based issue tracker that provides p
 
 1.  **Start**: Run `bd ready` to find unblocked work.
 2.  **Context**: Run `bd show <id>` to get full details for a task.
-3.  **Work**: Run `bd update <id> --status in_progress` to start.
+3.  **Work**: Run `bd update <id> --claim` to claim and start work atomically.
 4.  **Finish**: Run `bd close <id> --reason "..."` when done.
-5.  **Save**: Run `bd sync` at the end of the session to persist changes to git.
+5.  **Save**: Run `bd sync` (or `git push` if using Dolt/JSONL backend) to persist changes.
 
 ## Key Commands
 
 - `bd prime`: Outputs AI-optimized workflow context (Project, User, Recent Issues). **Run this first if you lack context.**
 - `bd create "Title" [type] [priority]`: Create a new issue.
-- `bd list`: List issues (use filters like `--status open`).
+- `bd ready`: Find unblocked work.
 - `bd show <id>`: Show details for a specific issue.
-- `bd comments <id>`: Read comments for an issue.
-- `bd update <id> ...`: Update status, priority, etc.
+- `bd update <id> --claim`: Claim and start work.
+- `bd sync`: Persist changes to git.
 
 ## Agent Behavior
 

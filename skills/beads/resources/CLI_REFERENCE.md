@@ -40,7 +40,7 @@ bd doctor --check=pollution              # Detect test issues
 bd doctor --check=pollution --clean      # Delete test issues
 
 # Recovery modes
-bd doctor --fix --source=jsonl           # Rebuild DB from JSONL
+bd doctor --fix --source=dolt            # Rebuild from Dolt history
 bd doctor --fix --force                  # Force repair on corrupted DB
 ```
 
@@ -73,14 +73,14 @@ bd prime --export              # Dump default content for customization
 ### Check Status
 
 ```bash
-# Check database path and daemon status
+# Check database path and server status
 bd info --json
 
 # Example output:
 # {
 #   "database_path": "/path/to/.beads/beads.db",
 #   "issue_prefix": "bd",
-#   "daemon_running": true
+#   "server_running": true
 # }
 ```
 
@@ -136,6 +136,11 @@ bd create "Tests" -p 1 --json                        # Auto-assigned: bd-a3f8e9.
 # Create and link discovered work (one command)
 bd create "Found bug" -t bug -p 1 --deps discovered-from:<parent-id> --json
 
+# Create with external reference (v0.9.2+)
+bd create "Fix login" -t bug -p 1 --external-ref "gh-123" --json  # Short form
+bd create "Fix login" -t bug -p 1 --external-ref "https://github.com/org/repo/issues/123" --json  # Full URL
+bd create "Jira task" -t task -p 1 --external-ref "jira-PROJ-456" --json  # Custom prefix
+
 # Preview creation without side effects (v0.47.0+)
 bd create "Issue title" -t task -p 1 --dry-run --json  # Shows what would be created
 ```
@@ -157,8 +162,12 @@ bd q "Task" | xargs bd show                   # Pipe to other commands
 
 ```bash
 # Update one or more issues
-bd update <id> [<id>...] --status in_progress --json
+bd update <id> [<id>...] --claim --json
 bd update <id> [<id>...] --priority 1 --json
+
+# Update external reference (v0.9.2+)
+bd update <id> --external-ref "gh-456" --json           # Short form
+bd update <id> --external-ref "jira-PROJ-789" --json    # Custom prefix
 
 # Edit issue fields in $EDITOR (HUMANS ONLY - not for agents)
 # NOTE: This command is intentionally NOT exposed via the MCP server
@@ -255,6 +264,9 @@ bd search "login" --status open --json                  # With status filter
 bd search "database" --label backend --limit 10         # With label and limit
 bd search "bd-5q"                                       # Search by partial ID
 
+# Find beads issue by external reference
+bd list --json | jq -r '.[] | select(.external_ref == "gh-123") | .id'
+
 # Filtered search
 bd search "security" --priority-min 0 --priority-max 2  # Priority range
 bd search "bug" --created-after 2025-01-01              # Date filter
@@ -349,7 +361,7 @@ Global flags work with any bd command and must appear **before** the subcommand.
 
 **Auto-detection (v0.21.1+):** bd automatically detects sandboxed environments and enables sandbox mode.
 
-When detected, you'll see: `ℹ️  Sandbox detected, using direct mode`
+When detected, you'll see: `Sandbox detected, using embedded mode`
 
 **Manual override:**
 
@@ -358,15 +370,14 @@ When detected, you'll see: `ℹ️  Sandbox detected, using direct mode`
 bd --sandbox <command>
 
 # Equivalent to combining these flags:
-bd --no-daemon --no-auto-flush --no-auto-import <command>
+bd --no-auto-flush --no-auto-import <command>
 ```
 
 **What it does:**
-- Disables daemon (uses direct SQLite mode)
-- Disables auto-export to JSONL
-- Disables auto-import from JSONL
+- Uses embedded mode (direct database access, no Dolt server needed)
+- Disables auto-sync operations
 
-**When to use:** Sandboxed environments where daemon can't be controlled (permission restrictions), or when auto-detection doesn't trigger.
+**When to use:** Sandboxed environments where the Dolt server can't be controlled (permission restrictions), or when auto-detection doesn't trigger.
 
 ### Staleness Control
 
@@ -374,7 +385,7 @@ bd --no-daemon --no-auto-flush --no-auto-import <command>
 # Skip staleness check (emergency escape hatch)
 bd --allow-stale <command>
 
-# Example: access database even if out of sync with JSONL
+# Example: access database even if it appears out of sync
 bd --allow-stale ready --json
 bd --allow-stale list --status open --json
 ```
@@ -392,7 +403,7 @@ bd import --force -i .beads/issues.jsonl
 
 **When to use:** `bd import` reports "0 created, 0 updated" but staleness errors persist.
 
-**Shows:** `Metadata updated (database already in sync with JSONL)`
+**Shows:** `Metadata updated (database already in sync)`
 
 ### Other Global Flags
 
@@ -400,12 +411,12 @@ bd import --force -i .beads/issues.jsonl
 # JSON output for programmatic use
 bd --json <command>
 
-# Force direct mode (bypass daemon)
-bd --no-daemon <command>
+# Force embedded mode (bypass Dolt server)
+bd --embedded <command>
 
 # Disable auto-sync
-bd --no-auto-flush <command>    # Disable auto-export to JSONL
-bd --no-auto-import <command>   # Disable auto-import from JSONL
+bd --no-auto-flush <command>    # Disable auto-flush
+bd --no-auto-import <command>   # Disable auto-import
 
 # Custom database path
 bd --db /path/to/.beads/beads.db <command>
@@ -416,7 +427,6 @@ bd --actor alice <command>
 
 **See also:**
 - [TROUBLESHOOTING.md - Sandboxed environments](TROUBLESHOOTING.md#sandboxed-environments-codex-claude-code-etc) for detailed sandbox troubleshooting
-- [DAEMON.md](DAEMON.md) for daemon mode details
 
 ## Advanced Operations
 
@@ -493,7 +503,7 @@ bd sync  # Now uses resurrect mode by default
 **Orphan handling modes:**
 
 - **`allow` (default)** - Import orphaned children without parent validation. Most permissive, ensures no data loss even if hierarchy is temporarily broken.
-- **`resurrect`** - Search JSONL history for deleted parents and recreate them as tombstones (Status=Closed, Priority=4). Preserves hierarchy with minimal data. Dependencies are also resurrected on best-effort basis.
+- **`resurrect`** - Search history for deleted parents and recreate them as tombstones (Status=Closed, Priority=4). Preserves hierarchy with minimal data. Dependencies are also resurrected on best-effort basis.
 - **`skip`** - Skip orphaned children with warning. Partial import succeeds but some issues are excluded.
 - **`strict`** - Fail import immediately if a child's parent is missing. Use when database integrity is critical.
 
@@ -534,30 +544,6 @@ bd info --schema --json                                # Get schema, tables, con
 
 These invariants prevent data loss and would have caught issues like GH #201 (missing issue_prefix after migration).
 
-### Daemon Management
-
-See [docs/DAEMON.md](DAEMON.md) for complete daemon management reference.
-
-```bash
-# List all running daemons
-bd daemons list --json
-
-# Check health (version mismatches, stale sockets)
-bd daemons health --json
-
-# Stop/restart specific daemon
-bd daemons stop /path/to/workspace --json
-bd daemons restart 12345 --json  # By PID
-
-# View daemon logs
-bd daemons logs /path/to/workspace -n 100
-bd daemons logs 12345 -f  # Follow mode
-
-# Stop all daemons
-bd daemons killall --json
-bd daemons killall --force --json  # Force kill if graceful fails
-```
-
 ### Sync Operations
 
 ```bash
@@ -565,16 +551,10 @@ bd daemons killall --force --json  # Force kill if graceful fails
 bd sync
 
 # What it does:
-# 1. Export pending changes to JSONL
-# 2. Commit to git
-# 3. Pull from remote
-# 4. Import any updates
-# 5. Push to remote
-
-# Resolve JSONL merge conflict markers (v0.47.0+)
-bd resolve-conflicts                          # Resolve in mechanical mode
-bd resolve-conflicts --dry-run --json         # Preview resolution
-# Mechanical mode rules: updated_at wins, closed beats open, higher priority wins
+# 1. Commit pending changes to Dolt
+# 2. Pull from remote
+# 3. Merge any updates
+# 4. Push to remote
 ```
 
 ## Issue Types
@@ -605,6 +585,14 @@ bd resolve-conflicts --dry-run --json         # Preview resolution
 Only `blocks` dependencies affect the ready work queue.
 
 **Note:** When creating an issue with a `discovered-from` dependency, the new issue automatically inherits the parent's `source_repo` field.
+
+## External References
+
+The `--external-ref` flag (v0.9.2+) links beads issues to external trackers:
+
+- Supports short form (`gh-123`) or full URL (`https://github.com/...`)
+- Portable via Dolt - survives sync across machines
+- Custom prefixes work for any tracker (`jira-PROJ-456`, `linear-789`)
 
 ## Output Formats
 
@@ -642,7 +630,7 @@ bd ready
 bd ready --json
 
 # 2. Claim issue
-bd update bd-42 --status in_progress --json
+bd update bd-42 --claim --json
 
 # 3. Work on it...
 
@@ -684,7 +672,7 @@ bd ready --json  # Find work
 
 # During session
 bd create "..." -p 1 --json
-bd update bd-42 --status in_progress --json
+bd update bd-42 --claim --json
 # ... work ...
 
 # End of session (IMPORTANT!)
@@ -696,7 +684,6 @@ bd sync  # Force immediate sync, bypass debounce
 ## See Also
 
 - [AGENTS.md](../AGENTS.md) - Main agent workflow guide
-- [DAEMON.md](DAEMON.md) - Daemon management and event-driven mode
-- [GIT_INTEGRATION.md](GIT_INTEGRATION.md) - Git workflows and merge strategies
+- [GIT_INTEGRATION.md](GIT_INTEGRATION.md) - Git worktrees and protected branches
 - [LABELS.md](../LABELS.md) - Label system guide
 - [README.md](../README.md) - User documentation

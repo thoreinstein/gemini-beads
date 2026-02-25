@@ -4,6 +4,7 @@ description: >
   Git-backed issue tracker for multi-session work with dependencies and persistent
   memory across conversation compaction. Use when work spans sessions, has blockers,
   or needs context recovery after compaction.
+version: "0.52.0"
 ---
 
 # Beads - Persistent Task Memory for AI Agents
@@ -55,7 +56,7 @@ Essential commands: `bd ready`, `bd create`, `bd show`, `bd update`, `bd close`,
 
 1. `bd ready` — Find unblocked work
 2. `bd show <id>` — Get full context
-3. `bd update <id> --status in_progress` — Start work
+3. `bd update <id> --claim` — Claim and start work atomically
 4. Add notes as you work (critical for compaction survival)
 5. `bd close <id> --reason "..."` — Complete task
 6. `bd sync` — Persist to git (always run at session end)
